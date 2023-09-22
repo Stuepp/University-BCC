@@ -109,31 +109,27 @@ class Spot:
 
 def world_gen(grid):
     space = [ANT, FREE_SPACE, DEAD_ANT]
+    NALIVE = 10
+    NDEAD = 10
     for i in range(WIDTH):
         a = []
         for j in range(WIDTH):
             spot = Spot(i,j)
-            spot.state = space[random.randint(0,2)]
+            if(NALIVE > 0 and NDEAD > 0):
+                spot.state = space[random.randint(0,2)]
+            elif(NALIVE > 0):
+                spot.state = space[random.randint(0,1)]
+            elif(NDEAD > 0):
+                spot.state = space[random.randint(1,2)]
+            else:
+                spot.state = space[1]
             if(spot.state == ANT):
                 ANTS.append(spot)
+                NALIVE-=1
+            elif(spot.state == DEAD_ANT):
+                NDEAD -=1
             a.append(spot)
         grid.append(a)
-
-def fake_world(grid):
-    for i in range(WIDTH):
-        a = []
-        for j in range(WIDTH):
-            spot = Spot(i, j)
-            if i == 1 and j == 1:
-                spot.state = ANT
-            elif i == 2 or i == 0 or j == 2:
-                spot.state = DEAD_ANT 
-            else:
-                spot.state = FREE_SPACE
-            a.append(spot)
-            print(spot.state, end=' ')
-        grid.append(a)
-        print('\n')
 
 def draw_world(grid):
     for i in range(WIDTH):
@@ -172,40 +168,20 @@ def move_to(spot, grid):
 if __name__ == '__main__':
     grid = []
     world_gen(grid)
-    #fake_world(grid)
     discovring_neighbors(grid)
     print('-------------------------------------------------------')
     draw_world(grid)
     print('-------------------------------------------------------')
+    
     z = 0
-    while z < 1000000:
-        for i in range(WIDTH):
-            for j in range(WIDTH):
-                spot = grid[i][j]
-                if spot.state == ANT or spot.state == ANT_WITH_DEAD_ANT or spot.state == ANT_CARRYING_DEAD_ANT:
-                    move_to(spot, grid)
-                if spot.state == ANT_WITH_DEAD_ANT:
-                    spot.picking_item()
-                if spot.state == ANT_CARRYING_DEAD_ANT:
-                    spot.drop_item()
-        #draw_world(grid)
-        #print('-------------------------------------------------------')
+    while z < 10:
+        for ant in ANTS:
+            move_to(ant, grid)
+            if(ant.state == FREE_SPACE):
+                print('no noin')
+            if(ant.state == ANT_WITH_DEAD_ANT):
+                ant.picking_item()
+            elif(ant.state == ANT_CARRYING_DEAD_ANT):
+                print('oi')
         z+=1
-    z = 1
-    while z:
-        z = 0
-        for i in range(WIDTH):
-            for j in range(WIDTH):
-                spot = grid[i][j]
-                if spot.state == ANT_CARRYING_DEAD_ANT:
-                    z = 1
-                    move_to(spot, grid)
-                    spot.drop_item()
-                if spot.state == ANT_WITH_DEAD_ANT:
-                    z = 1
-                    spot.state = DEAD_ANT
-                if spot.state == ANT:
-                    z = 1
-                    spot.state = FREE_SPACE
-        print('-------------------------------------------------------')
-        draw_world(grid)
+    draw_world(grid)
