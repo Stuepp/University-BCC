@@ -91,10 +91,25 @@ class Ant:
             decision = random.randint(0,1)
             if(neighbor.state == FREE_SPACE and decision == 1):
 
-                temp = grid[neighbor.row][neighbor.col]
                 grid[neighbor.row][neighbor.col] = self.state
-                grid[self.row][self.col] = temp
+                if(grid[self.row][self.col] != ANT_WITH_DEAD_ANT): # ou seja é uma formiga ou uma formiga carregando outra
+                    grid[self.row][self.col] = FREE_SPACE
+                else:
+                    grid[self.row][self.col] = DEAD_ANT
                 
+                self.row = neighbor.row
+                self.col = neighbor.col
+
+                self.update_neighbors(grid)
+                return
+            elif(neighbor.state == DEAD_ANT and decision == 1):
+                
+                grid[neighbor.row][neighbor.col] = ANT_WITH_DEAD_ANT
+                if(grid[self.row][self.col] != ANT_WITH_DEAD_ANT): # ou seja é uma formiga ou uma formiga carregando outra
+                    grid[self.row][self.col] = FREE_SPACE
+                else:
+                    grid[self.row][self.col] = DEAD_ANT
+
                 self.row = neighbor.row
                 self.col = neighbor.col
 
@@ -137,14 +152,25 @@ if __name__ == '__main__':
     create_ants()
     gen_world(grid)
     draw_world(grid)
-    print()
+    print('-')
+
     for a in ANTS:
         a.update_neighbors(grid)
-        print(a.row, a.col, a.neighbors)
+        print(a.row, a.col, end='[ ')
+        for n in a.neighbors:
+            print(n.state+',', end='')
+        print(']')
     print('---')
 
     for n in range(5):
         for a in ANTS:
             a.move_to(grid)
         draw_world(grid)
+        print('-')
+        for a in ANTS:
+            a.update_neighbors(grid)
+            print(a.row, a.col, end='[ ')
+            for n in a.neighbors:
+                print(n.state+',', end='')
+            print(']')
         print('---')
