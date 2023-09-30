@@ -1,6 +1,8 @@
 import random
+import math
 
-WIDTH = 10
+WIDTH = 40
+FILE = 'dados.txt'
 
 ANT = '8'
 DEAD_ANT = 'X'
@@ -9,16 +11,23 @@ ANT_WITH_DEAD_ANT = '@'
 ANT_CARRYING_DEAD_ANT = '9'
 VISON_RADIUS = 1
 
-NANTS = 5
+NANTS = 10
 ANTS = []
-NDEAD = 20
+ITENS = []
+NDEAD = 400
+
+class Item:
+    def __init__(self):
+        self.row = 0
+        self.col = 0
+        self.state = DEAD_ANT
+        self.vals = []
 
 class Neighbor:
     def __init__(self):
         self.row = 0
         self.col = 0
         self.state = 0
-
 
 class Ant:
     def __init__(self):
@@ -87,73 +96,114 @@ class Ant:
             self.neighbors.append(neighbor)
     
     def move_to(self, grid):
-        for neighbor in self.neighbors:
-            decision = random.randint(0,1)
-            if(neighbor.state == FREE_SPACE and decision == 1):
+        neighbor = self.neighbors[random.randint(0, len(self.neighbors)-1 )]
+        self.row = neighbor.row
+        self.col = neighbor.col
+        self.update_neighbors(grid)
+    
+    def pick_item(self, grid):
+        nDeadAround = 0
+        for x in self.neighbors:
+            if x.state == DEAD_ANT:
+                nDeadAround = nDeadAround + 1
+        
+        f = float(nDeadAround)/8.0
+        picking = ( 2 / (2 + f) )**2
+        if picking == 1 or picking >= random.uniform(0.0,1.0):
+            self.state = ANT_CARRYING_DEAD_ANT
+            grid[self.row][self.col] = FREE_SPACE
 
-                grid[neighbor.row][neighbor.col] = self.state
-                if(grid[self.row][self.col] != ANT_WITH_DEAD_ANT): # ou seja é uma formiga ou uma formiga carregando outra
-                    grid[self.row][self.col] = FREE_SPACE
-                else:
-                    grid[self.row][self.col] = DEAD_ANT
-                
-                self.row = neighbor.row
-                self.col = neighbor.col
-
-                self.update_neighbors(grid)
-                return
-            elif(neighbor.state == DEAD_ANT and decision == 1):
-                
-                grid[neighbor.row][neighbor.col] = ANT_WITH_DEAD_ANT
-                if(grid[self.row][self.col] != ANT_WITH_DEAD_ANT): # ou seja é uma formiga ou uma formiga carregando outra
-                    grid[self.row][self.col] = FREE_SPACE
-                else:
-                    grid[self.row][self.col] = DEAD_ANT
-
-                self.row = neighbor.row
-                self.col = neighbor.col
-
-                self.update_neighbors(grid)
-                return
+    def drop_item(self, grid):
+        nDeadAround = 0
+        for x in self.neighbors:
+            if x.state == DEAD_ANT:
+                nDeadAround = nDeadAround + 1
+        
+        f = float(nDeadAround)/8.0
+        droping = ( f / (2 + f) )**2
+        if droping >= random.uniform(0.0,1.0):
+            self.state = ANT
+            grid[self.row][self.col] = DEAD_ANT
 
 def create_ants():
     for a in range(NANTS):
         ant = Ant()
+        ant.row = random.randint(0, WIDTH - 1)
+        ant.col = random.randint(0, WIDTH - 1)
         ANTS.append(ant)
 
+def create_itens():
+    for x in range(NDEAD):
+        item = Item()
+        item.row = random.randint(0, WIDTH - 1)
+        item.col = random.randint(0 , WIDTH - 1)
+        okay = 0
+        while okay != 1:
+            okay = 1
+            for i in ITENS:
+                if(item.row == i.row and item.col == i.col):
+                    okay = 0
+                    item.row = random.randint(0, WIDTH - 1)
+                    item.col = random.randint(0 , WIDTH - 1)
+        ITENS.append(item)
+
 def gen_world(grid):
-    nAnts = NANTS-1
-    nDead = NDEAD-1
     for row in range(WIDTH):
         r = []
         for col in range(WIDTH):
-            decison = random.randint(0,2)
-            if ( decison == 1 and nAnts >= 0):
-                ant = ANTS[nAnts]
-                ant.row = row
-                ant.col = col
-                nAnts-=1
-                r.append(ant.state)
-            elif (decison == 2 and nDead >= 0):
-                nDead-=1
-                r.append(DEAD_ANT)
-            else:
+            dead = 0
+            for i in ITENS:
+                if(i.row == row and i.col == col):
+                    r.append(DEAD_ANT)
+                    dead = 1
+            if(dead == 0):
                 r.append(FREE_SPACE)
         grid.append(r)
 
 def draw_world(grid):
     for row in range(WIDTH):
         for col in range(WIDTH):
-            print(grid[row][col], end=' ')
+            f = 0
+            for ant in ANTS:
+                if(ant.row == row and ant.col == col):
+                    if(grid[row][col] == DEAD_ANT):
+                        print(ANT_WITH_DEAD_ANT, end=' ')
+                    else:
+                        print(ant.state, end=' ')
+                    f = 1
+                    break
+            if(f == 0):
+                print(grid[row][col], end=' ')
         print()
+    print('===========')
+
+def euclid_distance(item1, item2):
+    sum = 0
+    for i in range(len(item1.vals)):
+        square_sum = ( item1.vals[i] - item2.vals[i] )**2 + sum
+    distance = math.sqrt(square_sum)
+    return distance
+
+def get_itens_from_file(file):
+    f = open(file,'r')
+
+    for line in f:
+        item =  Item()
+        fields = line.split(';')
+        item.vals.append(float(fields[0]))
+        item.vals.append(float(fields[1]))
+        item.state = float(fields[2])
+        ITENS.append(item)
+    f.close()
 
 if __name__ == '__main__':
     grid = []
     create_ants()
+    get_itens_from_file(FILE) #create_itens()
     gen_world(grid)
     draw_world(grid)
     print('-')
-
+    
     for a in ANTS:
         a.update_neighbors(grid)
         print(a.row, a.col, end='[ ')
@@ -162,15 +212,20 @@ if __name__ == '__main__':
         print(']')
     print('---')
 
-    for n in range(5):
+    for n in range(1000000): #1000000
         for a in ANTS:
             a.move_to(grid)
-        draw_world(grid)
-        print('-')
-        for a in ANTS:
-            a.update_neighbors(grid)
-            print(a.row, a.col, end='[ ')
-            for n in a.neighbors:
-                print(n.state+',', end='')
-            print(']')
-        print('---')
+            if(a.state == ANT and grid[a.row][a.col] == DEAD_ANT):
+                a.pick_item(grid)
+            elif(a.state == ANT_CARRYING_DEAD_ANT and grid[a.row][a.col] == FREE_SPACE):
+                a.drop_item(grid)
+    
+    draw_world(grid)
+    ## situação da formiga e quem são os vizinhos
+    for a in ANTS:
+        a.update_neighbors(grid)
+        print(a.row, a.col, end='[ ')
+        for n in a.neighbors:
+            print(n.state+',', end='')
+        print(']')
+    print('---')
